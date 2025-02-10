@@ -21,7 +21,7 @@ namespace Chat.Controllers
         }
 
         [HttpPost]
-        [Route("api/UserRelationShip/CreateCustom")]
+        [Route("/CreateUserRelationship")]
         public  async Task<IActionResult> CreateCustom([FromBody] UserRelationRequest request)
         {
             if (request == null)

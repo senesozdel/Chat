@@ -75,11 +75,7 @@ builder.Services.AddScoped<MessageService>();
 builder.Services.AddScoped<BackgroundService>();
 
 
-
-
-
 var app = builder.Build();
-
 
 
 
@@ -89,6 +85,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+app.UseStaticFiles();
 app.UseCors("LocalDomain");
 
 
@@ -103,12 +100,13 @@ using (var scope = app.Services.CreateScope())
     var recurringJobManager = scope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
     var backgroundService = scope.ServiceProvider.GetRequiredService<BackgroundService>();
 
-    // Tekrarlanan iþ ekleniyor
+
     recurringJobManager.AddOrUpdate(
         "background-service-job",
         () => backgroundService.TakeBackup(),
-        Cron.Minutely
+        "* * * * *"    // Her 1 dakikada bir
     );
+
 }
 
 app.MapControllers();

@@ -44,7 +44,8 @@ namespace Chat.Controllers
                     User = new
                     {
                         Username = user.Name,
-                        Email = user.Email
+                        Email = user.Email,
+                        Image = user.Image
                     }
                 });
             }

@@ -72,7 +72,8 @@ namespace Chat.Controllers
                 var friendResponseModel = new UserResponseModel()
                 {
                     Email = friend.Email,
-                    UserName = friend.Name
+                    UserName = friend.Name,
+                    Image = friend.Image
                 };
 
                 friends.Add(friendResponseModel);
@@ -88,6 +89,58 @@ namespace Chat.Controllers
             var user = await _userService.GetByEmailAsync(email);
             return Ok(user);
         }
+
+        [HttpPost("upload-image/{email}")]
+        public async Task<IActionResult> UploadImage(string email, IFormFile image)
+        {
+            try
+            {
+                if (image == null || image.Length == 0)
+                    return BadRequest(new { message = "Resim dosyası seçilmedi." });
+
+                // Kullanıcıyı bul
+                var user = await _userService.GetByEmailAsync(email);
+                if (user == null)
+                    return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+                // Dosya uzantısını kontrol et
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+                var fileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(fileExtension))
+                    return BadRequest(new { message = "Sadece .jpg, .jpeg, .png ve .gif uzantılı dosyalar kabul edilir." });
+
+                // Benzersiz dosya adı oluştur
+                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+
+                // Dosya kayıt yolu
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // Dosyayı kaydet
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await image.CopyToAsync(fileStream);
+                }
+
+                // Kullanıcının resim yolunu güncelle
+                user.Image = $"/uploads/{fileName}";
+                await _userService.UpdateAsync(user.Id, user);
+
+                return Ok(new
+                {
+                    message = "Resim başarıyla yüklendi.",
+                    imagePath = user.Image
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Bir hata oluştu: {ex.Message}" });
+            }
+        }
+
 
     }
 }

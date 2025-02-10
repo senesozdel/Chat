@@ -8,68 +8,54 @@ using Chat.Models.ResponseModels;
 using Chat.Services;
 using Microsoft.AspNetCore.SignalR;
 using Chat.Cache;
+using Chat.Helpers;
 
 namespace Chat.Hub
 {
     public class ChatHub : Microsoft.AspNetCore.SignalR.Hub
     {
         private readonly UserService _userService;
-        private readonly ICacheService _cacheService;
-        public ChatHub(UserService userService, ICacheService cacheService ) { 
+        public ChatHub(UserService userService ) { 
         
             _userService = userService;
-            _cacheService = cacheService;
         }
         public async Task OnConnected (string userName)
         {
-            Client client = new Client
-            {
-                ConnectionId = Context.ConnectionId,
-                Name = userName
-            };
-            ClientData.Clients.Add(client);
-
             ConnectionManager.AddConnection(userName, Context.ConnectionId);
-
             await Clients.All.SendAsync("clientJoined",userName);
-            await Clients.All.SendAsync("clientList", ClientData.Clients);
         }
+
+
 
         public async Task SendMessageAsync(Message message)
         {
-            //var senderClient =  ClientData.Clients.FirstOrDefault(x => x.ConnectionId == Context.ConnectionId);   
-            var receiverUser = await _userService.GetByEmailAsync(message.Receivers.FirstOrDefault().Email);
+            var receiverUser = await _userService.GetByEmailAsync(message.Receivers.FirstOrDefault()?.Email);
             var senderUser = await _userService.GetByEmailAsync(message.Sender);
 
-            var receiverConnectionId = ConnectionManager.GetConnectionId(receiverUser.Name);
             var senderConnectionId = ConnectionManager.GetConnectionId(senderUser.Name);
+            var receiverConnectionId = ConnectionManager.GetConnectionId(receiverUser.Name);
 
-            Clients.Client(receiverConnectionId).SendAsync("receiveMessage", message);
-            Clients.Client(senderConnectionId).SendAsync("receiveMessage", message);
+            if (receiverConnectionId == null)
+            {
+                    message.Status = false;
+                    Clients.Client(senderConnectionId).SendAsync("receiveMessage", message);
 
-            //var messages = _cacheService.Get<List<Message>>("messages") ?? new List<Message>();
+            }
+            else 
+            {
 
-            //// Yeni mesajı ekle
-            //messages.Add(message);
+                ConnectedUsersHelper.SetMessageUsers(receiverUser, senderUser);
 
-            //// Cache'i güncelle
-            //_cacheService.Set("messages", messages);
-
-
-
-            //if (clientName == "Tümü")
-            //{
-            //    Clients.All.SendAsync("receiveMessage",message,senderClient.Name);
-            //}
-
-            //var desiredClient = ClientData.Clients.FirstOrDefault(c => c.Name == clientName);
-
-            //Clients.Client(desiredClient.ConnectionId).SendAsync("receiveMessage",message,senderClient.Name);
-            //var zaman = DateTime.Now;
-            //var receiverList = new List<string>() { "baska"};
-            //var modelMessage = new Message { SenderName=clientName,ReceiverNames =receiverList,  Content = message, Time = $"{zaman.Hour}:{zaman.Minute}" };
-
-            //Clients.Client(Context.ConnectionId).SendAsync("receiveMessage", modelMessage);
+                try
+                {
+                    Clients.Client(receiverConnectionId).SendAsync("receiveMessage", message);
+                    Clients.Client(senderConnectionId).SendAsync("receiveMessage", message);
+                }
+                catch (Exception ex)
+                {
+                    throw new HubException($"Mesaj gönderilemedi: {ex.Message}");
+                }
+            }
 
         }
 
@@ -80,7 +66,6 @@ namespace Chat.Hub
 
            if(receiverRequestUser != null && senderRequestUser != null )
             {
-
                 var receiverConnectionId = ConnectionManager.GetConnectionId(receiverRequestUser.Name);
 
                 if(receiverConnectionId != null)
@@ -89,24 +74,15 @@ namespace Chat.Hub
 
                 }
                
-
             }
 
 
         }
 
 
-
-
-
         public async Task AddGroup(string groupName)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-
-            GroupData.Groups.Add(new Group
-            {
-                GroupName = groupName
-            });
 
             await Clients.All.SendAsync("groups", groupName);
 
