@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chat.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class MessageController : BaseController<Message>
     {
@@ -15,9 +15,7 @@ namespace Chat.Controllers
         {
             _messageService = messageService;
         }
-
         [HttpGet]
-        [Route("/GetMessages")]
 
         public async Task<IActionResult> GetDesiredMessages([FromQuery] ChatOwner chatOwner)
         {
@@ -25,8 +23,8 @@ namespace Chat.Controllers
 
             var messageList = allmessages
              .Where(x =>
-                 (x.Sender == chatOwner.senderMail && x.Receivers.Any(r => r.Email == chatOwner.receiverMail)) ||
-                 (x.Sender == chatOwner.receiverMail && x.Receivers.Any(r => r.Email == chatOwner.senderMail))
+                 (x.Sender == chatOwner.SenderMail && x.Receivers.Any(r => r.Email == chatOwner.ReceiverMail)) ||
+                 (x.Sender == chatOwner.ReceiverMail && x.Receivers.Any(r => r.Email == chatOwner.SenderMail))
              )
              .ToList();
 
@@ -36,7 +34,6 @@ namespace Chat.Controllers
 
 
         [HttpPost]
-        [Route("/CreateMulti")]
         public  async Task<IActionResult> CreateMulti([FromBody] List<Message> messages)
         {
             var allMessages = await _messageService.GetAllAsync();

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chat.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class UserRelationShipController : BaseController<UserRelationShip>
     {
@@ -21,7 +21,6 @@ namespace Chat.Controllers
         }
 
         [HttpPost]
-        [Route("/CreateUserRelationship")]
         public  async Task<IActionResult> CreateCustom([FromBody] UserRelationRequest request)
         {
             if (request == null)

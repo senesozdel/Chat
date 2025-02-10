@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chat.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class UserRelationRequestsController : ControllerBase
     {
@@ -29,6 +29,11 @@ namespace Chat.Controllers
 
             var mainUser = await _userService.GetByEmailAsync(request.MainUserMail);
             var relatedUser = await _userService.GetByEmailAsync(request.RelatedUserMail);
+
+            if(relatedUser == null)
+            {
+                return BadRequest("Böyle bir kullanıcı yok.");
+            }
 
             var userRelation = new UserRelationShip()
             {

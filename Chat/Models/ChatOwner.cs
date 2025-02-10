@@ -2,8 +2,7 @@
 {
     public class ChatOwner
     {
-        public string receiverMail { get; set; }
-
-        public string senderMail { get; set; }
+        public string ReceiverMail { get; set; }
+        public string SenderMail { get; set; }
     }
 }

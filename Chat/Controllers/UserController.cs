@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Chat.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class UserController : BaseController<User>
     {
@@ -50,7 +50,7 @@ namespace Chat.Controllers
         }
 
 
-        [HttpGet("friends/{email}")]
+        [HttpGet("{email}")]
         public async Task<IActionResult> GetFriends(string email)
         {
             var user = await _userService.GetByEmailAsync(email);
@@ -90,7 +90,7 @@ namespace Chat.Controllers
             return Ok(user);
         }
 
-        [HttpPost("upload-image/{email}")]
+        [HttpPost("{email}")]
         public async Task<IActionResult> UploadImage(string email, IFormFile image)
         {
             try

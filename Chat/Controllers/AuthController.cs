@@ -10,7 +10,7 @@ using System.Collections;
 
 namespace Chat.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("[controller]/[action]")]
     [ApiController]
     public class AuthController : ControllerBase
     {
@@ -25,7 +25,7 @@ namespace Chat.Controllers
         }
 
 
-        [HttpPost("login")]
+        [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             var filter = Builders<User>.Filter.And(
