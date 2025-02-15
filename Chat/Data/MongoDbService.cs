@@ -10,7 +10,13 @@ namespace Chat.Data
         {
             _configuration = configuration;
 
-            var connectionString = _configuration.GetSection("MongoDB:ConnectionString").Value;
+            var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
+
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                connectionString = configuration.GetSection("MongoDB:ConnectionString").Value;
+            }
+
             var mongoUrl = MongoUrl.Create(connectionString);
             var mongoClient = new MongoClient(mongoUrl);
             _database = mongoClient.GetDatabase(mongoUrl.DatabaseName);
