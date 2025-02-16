@@ -6,15 +6,22 @@ namespace Chat.Data
     {
         private readonly IConfiguration _configuration;
         private readonly IMongoDatabase? _database;
-        public MongoDbService(IConfiguration configuration)
+        private readonly IWebHostEnvironment _environment;
+
+        public MongoDbService(IConfiguration configuration, IWebHostEnvironment environment)
         {
             _configuration = configuration;
+            _environment = environment;
 
-            var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
+            string connectionString;
 
-            if (string.IsNullOrEmpty(connectionString))
+            if (_environment.IsDevelopment())
             {
-                connectionString = configuration.GetSection("MongoDB:ConnectionString").Value;
+                connectionString = _configuration.GetSection("MongoDB:ConnectionString").Value;
+            }
+            else
+            {
+                connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
             }
 
             var mongoUrl = MongoUrl.Create(connectionString);

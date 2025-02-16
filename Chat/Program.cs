@@ -11,14 +11,18 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using BackgroundService = Chat.Services.BackgroundService;
 using Chat.Cache;
+using DotNetEnv;
+
+DotNetEnv.Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Render için port ayarý
-var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
-builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+if (!builder.Environment.IsDevelopment())
+{
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
 
-// Configuration ayarlarý
 builder.Configuration
     .SetBasePath(builder.Environment.ContentRootPath)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -26,41 +30,47 @@ builder.Configuration
     .AddEnvironmentVariables()
     .Build();
 
-// MongoDB baðlantý stringini environment variable'dan al
-var mongoConnectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING")
-    ?? builder.Configuration["MongoDB:ConnectionString"];
+var mongoConnectionString = builder.Environment.IsDevelopment()
+    ? builder.Configuration["MongoDB:ConnectionString"]
+    : Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING");
 
 builder.Services.AddHangfire(config =>
 {
-    config.UseMongoStorage(mongoConnectionString, "HangfireDb", new MongoStorageOptions
+    var options = new MongoStorageOptions
     {
         MigrationOptions = new MongoMigrationOptions
         {
             MigrationStrategy = new MigrateMongoMigrationStrategy(),
             BackupStrategy = new CollectionMongoBackupStrategy()
         }
-    });
+    };
+
+    if (builder.Environment.IsDevelopment())
+    {
+        options.CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection;
+    }
+
+    config.UseMongoStorage(mongoConnectionString, "HangfireDb", options);
 });
 
 builder.Services.AddHangfireServer();
 
-// Performance iyileþtirmeleri
 builder.Services.AddResponseCompression();
 builder.Services.AddMemoryCache();
-
 builder.Services.AddSignalR();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<MongoDbService>();
 
-// CORS politikasý güncelleme (Render için)
 builder.Services.AddCors(opt =>
-    opt.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin()
+    opt.AddPolicy("CorsPolicy", policy =>
+        policy.WithOrigins(builder.Configuration["CorsOrigin"])
               .AllowAnyHeader()
               .AllowAnyMethod()
+              .AllowCredentials()
 ));
+
 
 builder.Services.AddAuthentication(options =>
 {
@@ -75,14 +85,13 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"],
-        ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"],
+        ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER"),
+        ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-            Environment.GetEnvironmentVariable("JWT_KEY") ?? builder.Configuration["Jwt:Key"]))
+            Environment.GetEnvironmentVariable("JWT_KEY")))
     };
 });
 
-// Servis kayýtlarý
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<CookieService>();
@@ -95,21 +104,22 @@ builder.Services.AddScoped<BackgroundService>();
 
 var app = builder.Build();
 
-// Production ortamý için güvenlik ayarlarý
-if (app.Environment.IsProduction())
-{
-    app.UseHsts();
-}
-else
+
+
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts();
+}
 
 app.UseStaticFiles();
 app.UseResponseCompression();
-app.UseCors("AllowAll");
 app.UseHttpsRedirection();
+app.UseCors("CorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
