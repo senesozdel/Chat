@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (!builder.Environment.IsDevelopment())
 {
-    var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "4000";
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 }
 
