@@ -20,6 +20,7 @@ namespace Chat.Services
             var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY");
             var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER");
             var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+            var jwtExpireTime = Environment.GetEnvironmentVariable("JWT_EXPIRES_IN_MINUTES");
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -34,7 +35,7 @@ namespace Chat.Services
                 issuer: jwtIssuer,
                 audience: jwtAudience,
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(double.Parse(_configuration["JWT:ExpiresInMinutes"])),
+                expires: DateTime.Now.AddMinutes(double.Parse(jwtExpireTime)),
                 signingCredentials: creds
             );
 
