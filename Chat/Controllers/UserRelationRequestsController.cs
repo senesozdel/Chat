@@ -30,6 +30,13 @@ namespace Chat.Controllers
             var mainUser = await _userService.GetByEmailAsync(request.MainUserMail);
             var relatedUser = await _userService.GetByEmailAsync(request.RelatedUserMail);
 
+            if(mainUser == relatedUser)
+            {
+                return BadRequest("Kendinize İstek Gönderemezsiniz!");
+            }
+
+
+
             if(relatedUser == null)
             {
                 return BadRequest("Böyle bir kullanıcı yok.");

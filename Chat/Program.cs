@@ -101,6 +101,7 @@ builder.Services.AddScoped<UserRelationShipService>();
 builder.Services.AddScoped<UserRelationRequestsService>();
 builder.Services.AddScoped<MessageService>();
 builder.Services.AddScoped<BackgroundService>();
+builder.Services.AddScoped<IFileStorageService,BackblazeService>();
 
 var app = builder.Build();
 

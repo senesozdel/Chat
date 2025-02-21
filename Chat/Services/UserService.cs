@@ -18,6 +18,11 @@ namespace Chat.Services
             return await _collection.Find(e => e.Email == email && e.IsDeleted == false).FirstOrDefaultAsync();
         }
 
+        public async Task<User?> GetByNameAsync(string username)
+        {
+            return await _collection.Find(e => e.Name == username && e.IsDeleted == false).FirstOrDefaultAsync();
+        }
+
 
     }
 }

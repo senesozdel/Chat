@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="B2Net" Version="0.7.5" />
     <PackageReference Include="DotNetEnv" Version="3.1.1" />
     <PackageReference Include="Hangfire" Version="1.8.17" />
     <PackageReference Include="Hangfire.Mongo" Version="1.11.2" />
@@ -20,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\uploads\" />
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>

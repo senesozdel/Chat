@@ -1,4 +1,5 @@
 ﻿using Chat.Entities;
+using Chat.Interfaces;
 using Chat.Models.ResponseModels;
 using Chat.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -10,12 +11,14 @@ namespace Chat.Controllers
     public class UserController : BaseController<User>
     {
         private readonly UserService _userService;
-        private readonly UserRelationShipService _userRelationShipService; 
+        private readonly UserRelationShipService _userRelationShipService;
+        private readonly IFileStorageService _cloudFlareService; 
 
-        public UserController(UserService userService, UserRelationShipService userRelationShipService) : base(userService)
+        public UserController(UserService userService, UserRelationShipService userRelationShipService,IFileStorageService cloudFlareService) : base(userService)
         {
             _userService = userService;
             _userRelationShipService = userRelationShipService;
+            _cloudFlareService = cloudFlareService;
 
         }
 
@@ -88,58 +91,10 @@ namespace Chat.Controllers
         {
             var user = await _userService.GetByEmailAsync(email);
             return Ok(user);
+
         }
 
-        [HttpPost("{email}")]
-        public async Task<IActionResult> UploadImage(string email, IFormFile image)
-        {
-            try
-            {
-                if (image == null || image.Length == 0)
-                    return BadRequest(new { message = "Resim dosyası seçilmedi." });
-
-                // Kullanıcıyı bul
-                var user = await _userService.GetByEmailAsync(email);
-                if (user == null)
-                    return NotFound(new { message = "Kullanıcı bulunamadı." });
-
-                // Dosya uzantısını kontrol et
-                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
-                var fileExtension = Path.GetExtension(image.FileName).ToLowerInvariant();
-                if (!allowedExtensions.Contains(fileExtension))
-                    return BadRequest(new { message = "Sadece .jpg, .jpeg, .png ve .gif uzantılı dosyalar kabul edilir." });
-
-                // Benzersiz dosya adı oluştur
-                var fileName = $"{Guid.NewGuid()}{fileExtension}";
-
-                // Dosya kayıt yolu
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsFolder))
-                    Directory.CreateDirectory(uploadsFolder);
-
-                var filePath = Path.Combine(uploadsFolder, fileName);
-
-                // Dosyayı kaydet
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await image.CopyToAsync(fileStream);
-                }
-
-                // Kullanıcının resim yolunu güncelle
-                user.Image = $"/uploads/{fileName}";
-                await _userService.UpdateAsync(user.Id, user);
-
-                return Ok(new
-                {
-                    message = "Resim başarıyla yüklendi.",
-                    imagePath = user.Image
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"Bir hata oluştu: {ex.Message}" });
-            }
-        }
+        
 
 
     }

@@ -9,20 +9,69 @@ using Chat.Services;
 using Microsoft.AspNetCore.SignalR;
 using Chat.Cache;
 using Chat.Helpers;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Chat.Hub
 {
     public class ChatHub : Microsoft.AspNetCore.SignalR.Hub
     {
         private readonly UserService _userService;
-        public ChatHub(UserService userService ) { 
+        private readonly UserRelationShipService _userRelationShipService;
+
+        public ChatHub(UserService userService, UserRelationShipService userRelationShipService) { 
         
             _userService = userService;
+            _userRelationShipService = userRelationShipService;
         }
+
+        public async Task<List<UserResponseModel>> GetFriends(string username)
+        {
+            var user = await _userService.GetByNameAsync(username);
+
+            var relations = await _userRelationShipService.GetAllAsync();
+
+            var friendIds = relations
+                  .Where(x => x.UserId == user.Id || x.RelatedUserId == user.Id)
+                  .Select(x => x.UserId == user.Id ? x.RelatedUserId : x.UserId)
+                  .Distinct()
+                  .ToList();
+
+            List<UserResponseModel> friends = new List<UserResponseModel>();
+
+            foreach (var id in friendIds)
+            {
+                var friend = await _userService.GetByIdAsync(id);
+
+                var friendResponseModel = new UserResponseModel()
+                {
+                    Email = friend.Email,
+                    UserName = friend.Name,
+                    Image = friend.Image
+                };
+
+                friends.Add(friendResponseModel);
+            }
+
+
+            return friends;
+        }
+
+
         public async Task OnConnected (string userName)
         {
             ConnectionManager.AddConnection(userName, Context.ConnectionId);
-            await Clients.All.SendAsync("clientJoined",userName);
+
+            var friends = await GetFriends(userName);
+
+            var onlineConnectionIds = friends
+             .Select(f => ConnectionManager.GetConnectionId(f.UserName))
+             .Where(connectionId => connectionId != null)
+             .ToList();
+
+            if (onlineConnectionIds.Any())
+            {
+                await Clients.Clients(onlineConnectionIds).SendAsync("clientJoined", userName);
+            }
         }
 
 
